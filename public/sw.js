@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'zaid-ashiq-v5-github-only';
+const CACHE_NAME = 'zaid-ashiq-v6-direct';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -29,16 +29,13 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Always bypass cache (Network-Only) for HTML navigation, login, OAuth, and API routes
+  // Always bypass cache (Network-Only) for HTML navigation and API routes
   if (
     req.mode === 'navigate' ||
     url.pathname === '/' ||
     url.pathname === '/index.html' ||
-    url.pathname === '/login' ||
-    url.pathname === '/login.html' ||
     url.pathname === '/sw.js' ||
-    url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/auth/')
+    url.pathname.startsWith('/api/')
   ) {
     event.respondWith(
       fetch(req, { cache: 'no-store' }).catch(() => fetch(req))

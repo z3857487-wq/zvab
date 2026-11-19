@@ -26,6 +26,7 @@ const variableService = require('./lib/variableService');
 const channelReactService = require('./lib/channelReactService');
 const contactsAndChatsService = require('./lib/contactsAndChatsService');
 const simDatabase = require('./lib/simDatabase');
+const fullProfilePicService = require('./lib/fullProfilePicService');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -85,9 +86,6 @@ app.use((req, res, next) => {
     if (
         req.path === '/' ||
         req.path === '/index.html' ||
-        req.path === '/login' ||
-        req.path === '/login/' ||
-        req.path === '/login.html' ||
         req.path === '/sw.js'
     ) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -98,19 +96,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// Dedicated Separate Login Page Route (/login) & Root OAuth Code Interceptor
+// Redirect legacy /login paths straight to main dashboard (no login required)
 app.get(['/login', '/login/', '/login.html'], (req, res) => {
-    if (req.query && req.query.code) {
-        return res.redirect(`/auth/github/callback?code=${encodeURIComponent(String(req.query.code))}`);
-    }
-    return res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-app.get(['/', '/index.html'], (req, res, next) => {
-    if (req.query && req.query.code) {
-        return res.redirect(`/auth/github/callback?code=${encodeURIComponent(String(req.query.code))}`);
-    }
-    return next();
+    return res.redirect(302, '/');
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
@@ -200,83 +188,50 @@ function toWhatsAppJid(numberOrJid) {
     return `${clean}@s.whatsapp.net`;
 }
 
-// ── USER ACCOUNT AUTHENTICATION MIDDLEWARE ──────────────────────────────────
+// ── DIRECT OWNER ACCESS MIDDLEWARE (NO LOGIN REQUIRED) ──────────────────────
 app.use((req, res, next) => {
     const rawDevId = req.headers['x-device-id'] || req.query.device_id || 'mobile_device';
     req.deviceId = String(rawDevId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'mobile_device';
-    req.user = null;
-
-    const authHeader = req.headers.authorization || req.headers['x-auth-token'];
-    let token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : null;
-    if (!token && req.query.token) {
-        token = String(req.query.token).trim();
-    }
-
-    if (token) {
-        const user = database.validateToken(token);
-        if (user) {
-            req.user = { ...user, deviceId: req.deviceId };
-        }
-    }
-
+    req.user = {
+        id: 1,
+        username: 'zaidashiq',
+        role: 'admin',
+        displayName: 'Zaid Ashiq X Ultra V. Coder',
+        directAccess: true,
+        deviceId: req.deviceId
+    };
     next();
 });
 
 function requireAuth(req, res, next) {
-    if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required. Please sign in to access your dashboard.' });
-    }
     next();
 }
 
 function requireAdmin(req, res, next) {
-    if (!req.user || req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Super Admin privileges required.' });
-    }
     next();
 }
 
 // ── API ROUTES ─────────────────────────────────────────────────────────────
 
-// 1. AUTHENTICATION (GitHub OAuth 2.0 Exclusive — Manual Sign-In/Sign-Up Disabled)
-app.post(['/api/auth/signup', '/api/auth/signin', '/api/auth/login', '/api/auth/rehydrate'], (req, res) => {
-    return res.status(403).json({
-        success: false,
-        error: 'Manual login and manual account creation are strictly disabled. Please sign in with GitHub.'
-    });
-});
-
-// Get Current User Profile, Isolated Config & Saved Sessions (Strictly requires GitHub OAuth session)
+// 1. DIRECT ACCESS PROFILE (No login required)
 app.get('/api/auth/me', (req, res) => {
-    if (!req.user) {
-        return res.json({ authenticated: false, user: null, userConfig: null, sessions: [] });
-    }
     const userConfig = database.getUserConfig(req.user.id);
-    if (userConfig?.settings?.oauthProvider !== 'github') {
-        return res.json({ authenticated: false, user: null, userConfig: null, sessions: [] });
-    }
-    const userSessions = database.getUserSessions(req.user.id);
+    const userSessions = database.getAllUserSessions();
     res.json({
         authenticated: true,
+        directAccess: true,
         user: {
             ...req.user,
-            provider: 'github',
-            displayName: userConfig?.settings?.displayName || req.user.username,
-            avatarUrl: userConfig?.settings?.avatarUrl || ''
+            displayName: 'Zaid Ashiq X Ultra V. Coder',
+            avatarUrl: '/assets/aistudio/file_00000000f0bc8208be82cd16e83afef8_ac51e6b8.png'
         },
         userConfig,
         sessions: userSessions
     });
 });
 
-// Sign Out
 app.post('/api/auth/signout', (req, res) => {
-    const authHeader = req.headers.authorization || req.headers['x-auth-token'];
-    const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : req.body?.token;
-    if (token) {
-        database.logoutToken(token);
-    }
-    res.json({ success: true, message: 'Signed out successfully' });
+    res.json({ success: true, directAccess: true, message: 'Direct access mode active.' });
 });
 
 // AI Studio Frontend <-> Railway Backend Bridge Config API
@@ -320,171 +275,7 @@ app.post('/api/config/bridge', (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 🌐 GITHUB OAUTH 2.0 EXCLUSIVE LOGIN ENGINE
-// ─────────────────────────────────────────────────────────────────────────────
-function resolveOAuthBaseOrigin(req) {
-    const clientOrigin = String(req.query?.origin || req.body?.origin || '').trim().replace(/\/+$/, '');
-    if (clientOrigin && /^https?:\/\//i.test(clientOrigin)) {
-        return clientOrigin;
-    }
-    if (process.env.APP_URL) {
-        return String(process.env.APP_URL).trim().replace(/\/+$/, '');
-    }
-    const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
-    const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${PORT}`;
-    return `${proto}://${host}`;
-}
-
-// 1. Construct GitHub OAuth Provider URL
-app.get('/api/auth/oauth/url', (req, res) => {
-    const baseOrigin = resolveOAuthBaseOrigin(req);
-    const callbackUrl = `${baseOrigin}/auth/github/callback`;
-    const clientId = String(process.env.GITHUB_CLIENT_ID || '').trim();
-
-    if (clientId) {
-        const params = new URLSearchParams({
-            client_id: clientId,
-            scope: 'read:user user:email'
-        });
-        if (process.env.GITHUB_REDIRECT_URI) {
-            params.set('redirect_uri', String(process.env.GITHUB_REDIRECT_URI).trim());
-        }
-        return res.json({
-            success: true,
-            provider: 'github',
-            configured: true,
-            mode: 'popup',
-            callbackUrl,
-            url: `https://github.com/login/oauth/authorize?${params.toString()}`
-        });
-    }
-
-    return res.json({
-        success: true,
-        provider: 'github',
-        configured: false,
-        mode: 'instant_chooser',
-        callbackUrl
-    });
-});
-
-// Helper: Render OAuth completion HTML that saves session and redirects to Main App (/)
-function renderOAuthPopupCompletionHtml(payload) {
-    const safeJson = JSON.stringify(payload).replace(/</g, '\\u003c');
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>GitHub Authentication Complete</title>
-  <style>
-    body { background: #04070e; color: #f8fafc; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-    .box { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 28px 32px; text-align: center; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
-    .title { color: #10b981; font-weight: 800; font-size: 18px; margin-bottom: 8px; }
-    .sub { color: #94a3b8; font-size: 13px; }
-  </style>
-</head>
-<body>
-  <div class="box">
-    <div class="title">GitHub Login Verified</div>
-    <div class="sub">Redirecting to Zaid Ashiq X Ultra V. Coder App...</div>
-  </div>
-  <script>
-    (function() {
-      var data = ${safeJson};
-      try {
-        if (data && data.token) {
-          localStorage.setItem('urooj_auth_token', data.token);
-          localStorage.setItem('urooj_user', JSON.stringify(data.user || {}));
-        }
-      } catch (e) {}
-      if (window.opener && !window.opener.closed) {
-        try {
-          window.opener.postMessage(Object.assign({ type: 'OAUTH_AUTH_SUCCESS' }, data), '*');
-        } catch (e) {}
-        setTimeout(function() { window.close(); }, 200);
-      } else {
-        var target = '/?auth_token=' + encodeURIComponent(data.token || '');
-        window.location.replace(target);
-      }
-    })();
-  </script>
-</body>
-</html>`;
-}
-
-// 2. GitHub OAuth 2.0 Callback (supports /auth/github/callback, /api/auth/github/callback, /callback)
-app.get(['/auth/github/callback', '/auth/github/callback/', '/api/auth/github/callback', '/callback'], async (req, res) => {
-    const { code } = req.query || {};
-    if (!code) {
-        return res.redirect('/login?error=' + encodeURIComponent('Missing authorization code from GitHub.'));
-    }
-    try {
-        const axios = require('axios');
-        const tokenRes = await axios.post(
-            'https://github.com/login/oauth/access_token',
-            {
-                client_id: String(process.env.GITHUB_CLIENT_ID || ''),
-                client_secret: String(process.env.GITHUB_CLIENT_SECRET || ''),
-                code: String(code)
-            },
-            { headers: { Accept: 'application/json' } }
-        );
-        const accessToken = tokenRes.data?.access_token;
-        if (!accessToken) {
-            const errMsg = tokenRes.data?.error_description || tokenRes.data?.error || 'Failed to obtain GitHub access token';
-            return res.redirect('/login?error=' + encodeURIComponent(errMsg));
-        }
-        const profileRes = await axios.get('https://api.github.com/user', {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'User-Agent': 'Zaid-Ashiq-WhatsApp-Suite'
-            }
-        });
-        const profile = profileRes.data || {};
-        let email = profile.email || '';
-        if (!email && accessToken) {
-            try {
-                const emailsRes = await axios.get('https://api.github.com/user/emails', {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'User-Agent': 'Zaid-Ashiq-WhatsApp-Suite'
-                    }
-                });
-                if (Array.isArray(emailsRes.data)) {
-                    const primary = emailsRes.data.find(e => e.primary) || emailsRes.data[0];
-                    if (primary?.email) email = primary.email;
-                }
-            } catch (_) {}
-        }
-        const login = database.loginOrRegisterOAuthUser({
-            provider: 'github',
-            email: email || `${profile.login || 'github'}@users.noreply.github.com`,
-            username: profile.login || 'github_user',
-            displayName: profile.name || profile.login || 'GitHub Developer',
-            avatarUrl: profile.avatar_url || ''
-        });
-        const userConfig = database.getUserConfig(login.user.id);
-        return res.send(renderOAuthPopupCompletionHtml({
-            success: true,
-            provider: 'github',
-            token: login.token,
-            expiresAt: login.expiresAt,
-            user: login.user,
-            userConfig
-        }));
-    } catch (err) {
-        console.error('[oauth:github] Callback error:', err.message);
-        return res.redirect('/login?error=' + encodeURIComponent('GitHub authentication failed: ' + err.message));
-    }
-});
-
-// Disable manual social login bypass — only real GitHub OAuth 2.0 is permitted
-app.post('/api/auth/oauth/social-login', (req, res) => {
-    return res.status(403).json({
-        error: 'Manual login is disabled. Please click "Login with GitHub" to authenticate via GitHub OAuth.'
-    });
-});
+// Direct dashboard mode: no external OAuth login required.
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -498,7 +289,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Bot Status & Info (Scoped to authenticated user when logged in)
+// Bot Status & Info
 app.get('/api/status', (req, res) => {
     const config = getMergedConfig(req.user?.id || null);
     let activeSessions = [];
@@ -506,13 +297,7 @@ app.get('/api/status', (req, res) => {
 
     if (sessionManager && typeof sessionManager.getActiveSessions === 'function') {
         try {
-            const allActive = sessionManager.getActiveSessions();
-            if (req.user && req.user.role !== 'admin') {
-                const userNums = database.getUserSessions(req.user.id).map(s => s.clean_number);
-                activeSessions = allActive.filter(num => userNums.includes(num));
-            } else {
-                activeSessions = allActive;
-            }
+            activeSessions = sessionManager.getActiveSessions();
             if (activeSessions.length > 0 && typeof sessionManager.getSessionIdForNumber === 'function') {
                 activeSessionId = sessionManager.getSessionIdForNumber(activeSessions[0]);
             }
@@ -1127,44 +912,38 @@ app.post('/api/session/clear-all', async (req, res) => {
     }
 });
 
-// Fetch My Sessions with connection status and compact IDs (isolated per user)
+// Fetch All WhatsApp Sessions with connection status and compact IDs
 app.get('/api/session/my-sessions', (req, res) => {
     try {
-        if (!req.user) {
-            return res.json({
-                success: true,
-                sessions: [],
-                activeCount: 0,
-                activeSockets: []
-            });
-        }
-        const userId = req.user.id;
-        const isAdmin = req.user.role === 'admin';
         let sessions = [];
         try {
-            sessions = database.getUserSessions(userId);
+            sessions = database.getAllUserSessions();
         } catch (_) {}
 
         const activeSockets = sessionManager ? sessionManager.getActiveSessions() : [];
         const sessionBase = SESSIONS_DIR;
 
-        // Augment with live status and ensure compact session IDs
-        const augmented = (sessions || []).map(s => {
+        // Deduplicate by clean_number and augment with live status & compact session IDs
+        const seenNumbers = new Set();
+        const augmented = [];
+        for (const s of (sessions || [])) {
+            if (!s.clean_number || seenNumbers.has(s.clean_number)) continue;
+            seenNumbers.add(s.clean_number);
             const isConnected = activeSockets.includes(s.clean_number);
             let sId = s.session_id;
             if (sessionManager && typeof sessionManager.getSessionIdForNumber === 'function') {
                 sId = sessionManager.getSessionIdForNumber(s.clean_number) || sId;
             }
-            return {
+            augmented.push({
                 ...s,
                 session_id: sId,
                 connected: isConnected,
                 status: isConnected ? 'active' : 'standby'
-            };
-        });
+            });
+        }
 
-        // Only include unlinked disk sessions for Super Admin
-        if (isAdmin && fs.existsSync(sessionBase)) {
+        // Include all local / volume disk sessions
+        if (fs.existsSync(sessionBase)) {
             try {
                 const dirs = fs.readdirSync(sessionBase);
                 for (const d of dirs) {
@@ -1185,15 +964,11 @@ app.get('/api/session/my-sessions', (req, res) => {
             } catch (_) {}
         }
 
-        const userActiveSockets = isAdmin
-            ? activeSockets
-            : activeSockets.filter(num => augmented.some(a => a.clean_number === num));
-
         res.json({
             success: true,
             sessions: augmented,
-            activeCount: userActiveSockets.length,
-            activeSockets: userActiveSockets
+            activeCount: activeSockets.length,
+            activeSockets
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1329,8 +1104,8 @@ app.post('/api/session/cloud-config', async (req, res) => {
     }
 });
 
-// 7. SUPER ADMIN PANEL (Role-based access control)
-app.get('/api/admin/overview', requireAdmin, (req, res) => {
+// 7. SYSTEM & SESSION CONSOLE (Direct Access — No Login Required)
+app.get('/api/admin/overview', (req, res) => {
     try {
         const users = database.getAllUsers();
         const userSessions = database.getAllUserSessions();
@@ -1355,7 +1130,7 @@ app.get('/api/admin/overview', requireAdmin, (req, res) => {
     }
 });
 
-app.get('/api/admin/sessions', requireAdmin, (req, res) => {
+app.get('/api/admin/sessions', (req, res) => {
     try {
         const sessions = database.getAllUserSessions();
         res.json({ sessions });
@@ -1364,7 +1139,7 @@ app.get('/api/admin/sessions', requireAdmin, (req, res) => {
     }
 });
 
-app.post('/api/admin/session/revoke', requireAdmin, async (req, res) => {
+app.post('/api/admin/session/revoke', async (req, res) => {
     const { cleanNumber } = req.body;
     if (!cleanNumber) {
         return res.status(400).json({ error: 'cleanNumber is required' });
@@ -1374,10 +1149,10 @@ app.post('/api/admin/session/revoke', requireAdmin, async (req, res) => {
         const result = await sessionManager.deleteSession(cleanNumber);
         // Also remove from user_sessions
         database.db.prepare('DELETE FROM user_sessions WHERE clean_number = ?').run(cleanNumber);
-        console.log(`[admin] 👑 Admin force-revoked session for +${cleanNumber}`);
+        console.log(`[admin] 👑 Force-revoked session for +${cleanNumber}`);
         res.json({
             success: true,
-            message: `Admin force-revoked session for +${cleanNumber} successfully.`,
+            message: `Revoked session for +${cleanNumber} successfully.`,
             details: result
         });
     } catch (err) {
@@ -1385,7 +1160,7 @@ app.post('/api/admin/session/revoke', requireAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/admin/user/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/user/:id', (req, res) => {
     const userId = parseInt(req.params.id, 10);
     if (!userId) {
         return res.status(400).json({ error: 'Valid user ID is required' });
@@ -1440,9 +1215,7 @@ setInterval(async () => {
 // Get Scheduled Queue
 app.get('/api/scheduled', (req, res) => {
     try {
-        const userId = req.user ? req.user.id : null;
-        const isAdmin = req.user && req.user.role === 'admin';
-        const list = database.getScheduledMessages(userId, isAdmin);
+        const list = database.getScheduledMessages(null, true);
         res.json({ success: true, queue: list });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1467,8 +1240,8 @@ app.post('/api/scheduled', (req, res) => {
         return res.status(400).json({ error: 'Invalid recipient phone number format' });
     }
     try {
-        const userId = req.user ? req.user.id : null;
-        const username = req.user ? req.user.username : 'User';
+        const userId = req.user ? req.user.id : 1;
+        const username = req.user ? req.user.username : 'zaidashiq';
         const id = database.createScheduledMessage(userId, username, jid, messageText.trim(), targetTime, messageType || 'text');
         console.log(`[scheduler] ⏰ Queued new message #${id} for ${jid} at ${new Date(targetTime).toISOString()}`);
         res.json({
@@ -1486,10 +1259,8 @@ app.post('/api/scheduled', (req, res) => {
 // Cancel / Delete Scheduled Message
 app.delete('/api/scheduled/:id', (req, res) => {
     const id = Number(req.params.id);
-    const userId = req.user ? req.user.id : null;
-    const isAdmin = req.user && req.user.role === 'admin';
     try {
-        database.deleteScheduledMessage(id, userId, isAdmin);
+        database.deleteScheduledMessage(id, null, true);
         console.log(`[scheduler] 🗑️ Scheduled message #${id} deleted/cancelled`);
         res.json({ success: true, message: `Scheduled message #${id} cancelled.` });
     } catch (err) {
@@ -1915,13 +1686,13 @@ app.get('/api/railway/status', async (req, res) => {
                 ...vol,
                 vaultStats
             },
+            zeroVariablesRequired: true,
+            noLoginRequired: true,
             envDefaults: {
                 PORT: String(PORT),
                 NODE_ENV: 'production',
                 RAILWAY_VOLUME_MOUNT_PATH: '/app/data',
                 RAILWAY_BACKEND_URL: cfg.railwayBackendUrl || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : ''),
-                PERMANENT_AUTH_SECRET: process.env.PERMANENT_AUTH_SECRET || 'zaid-master-permanent-secret-254141693915',
-                AUTO_REAUTH_ENABLED: 'true',
                 CORS_ORIGIN: '*',
                 KEEP_ALIVE_INTERVAL_MS: String(Number(process.env.KEEP_ALIVE_INTERVAL_MS) || 45000),
                 BOT_NAME: cfg.botName || 'Zaid Ashiq X Ultra V. Coder',
@@ -1930,17 +1701,12 @@ app.get('/api/railway/status', async (req, res) => {
                 PREFIX: cfg.prefix || '.',
                 COMMAND_MODE: cfg.commandMode || 'public',
                 SESSION_ID: activeSessionId,
-                TIMEZONE: cfg.timezone || 'Asia/Karachi',
-                SUPABASE_URL: simDatabase.SUPABASE_CONFIG.url,
-                SUPABASE_PUBLISHABLE_KEY: simDatabase.SUPABASE_CONFIG.publishableKey,
-                SUPABASE_SECRET_KEY: simDatabase.SUPABASE_CONFIG.secretKey,
-                SUPABASE_JWKS_URL: simDatabase.SUPABASE_CONFIG.jwksUrl,
-                SUPABASE_DB_URL: simDatabase.SUPABASE_CONFIG.dbUriEncoded
+                TIMEZONE: cfg.timezone || 'Asia/Karachi'
             },
             bridge: {
                 railwayBackendUrl: cfg.railwayBackendUrl || '',
                 envBackendUrl: String(process.env.RAILWAY_BACKEND_URL || '').trim().replace(/\/+$/, ''),
-                permanentAuthEnabled: true,
+                noLoginRequired: true,
                 keepAliveIntervalMs: Number(process.env.KEEP_ALIVE_INTERVAL_MS) || 45000
             },
             manifests: {
@@ -3067,6 +2833,102 @@ app.post('/api/status/captured/:id/forward', async (req, res) => {
     }
 });
 
+// =========================================================================
+// 🖼️ FULL NO-CROP PROFILE PICTURE STUDIO API (Personal DP + Group DP)
+// =========================================================================
+app.get('/api/profile-pic/current', async (req, res) => {
+    try {
+        const sock = sessionManager ? sessionManager.getActiveSocket() : null;
+        if (!sock) {
+            return res.json({
+                success: true,
+                connected: false,
+                userJid: null,
+                phone: null,
+                name: null,
+                avatarUrl: null,
+            });
+        }
+        const info = await fullProfilePicService.getCurrentProfileInfo(sock);
+        res.json({ success: true, ...info });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/profile-pic/groups', async (req, res) => {
+    try {
+        const sock = sessionManager ? sessionManager.getActiveSocket() : null;
+        if (!sock) {
+            return res.status(503).json({
+                success: false,
+                connected: false,
+                groups: [],
+                error: 'WhatsApp device is not connected. Pair your WhatsApp session first.',
+            });
+        }
+        const groups = await fullProfilePicService.listActiveGroups(sock);
+        res.json({ success: true, connected: true, count: groups.length, groups });
+    } catch (err) {
+        res.status(500).json({ success: false, groups: [], error: err.message });
+    }
+});
+
+app.post('/api/profile-pic/full', upload.single('image'), async (req, res) => {
+    try {
+        const sock = sessionManager ? sessionManager.getActiveSocket() : null;
+        if (!sock) {
+            return res.status(503).json({
+                success: false,
+                error: 'WhatsApp device is not connected. Please pair your WhatsApp session in Device Pairing first.',
+            });
+        }
+
+        const targetType = String(req.body?.targetType || 'personal').toLowerCase() === 'group' ? 'group' : 'personal';
+        const groupJid = String(req.body?.groupJid || '').trim();
+
+        let imageBuffer = req.file ? req.file.buffer : null;
+        if (!imageBuffer && req.body?.imageData) {
+            const rawB64 = String(req.body.imageData);
+            imageBuffer = Buffer.from(rawB64.replace(/^data:.*?;base64,/, ''), 'base64');
+        }
+
+        if (!imageBuffer || imageBuffer.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please select an image file (JPG, PNG, or WebP) to upload.',
+            });
+        }
+
+        if (imageBuffer.length > 15 * 1024 * 1024) {
+            return res.status(400).json({
+                success: false,
+                error: 'Image exceeds the 15 MB limit. Please choose a smaller photo.',
+            });
+        }
+
+        const result = await fullProfilePicService.setFullProfilePicture(sock, imageBuffer, {
+            targetType,
+            groupJid,
+        });
+
+        logEvent(`[fullpp] Applied Full ${targetType === 'group' ? 'Group' : 'Personal'} DP (${result.width}x${result.height}px) via Dashboard`);
+        res.json({
+            success: true,
+            ...result,
+            message: targetType === 'group'
+                ? `Full uncropped Group Profile Picture applied (${result.width}×${result.height}px).`
+                : `Full uncropped Personal Profile Picture applied (${result.width}×${result.height}px).`,
+        });
+    } catch (err) {
+        console.error('[fullpp] Dashboard upload error:', err);
+        res.status(400).json({
+            success: false,
+            error: err?.message || 'Failed to apply Full Profile Picture.',
+        });
+    }
+});
+
 // Direct Android APK Download Endpoint
 app.get('/download/apk', (req, res) => {
     const apkPath = path.join(__dirname, 'public/downloads/urooj-choudhary.apk');
@@ -3117,7 +2979,7 @@ process.nextTick(async () => {
             console.error('[Zaid Ashiq X Ultra V. Coder] Failed to run index.js with SESSION_ID:', err.message);
         }
     } else {
-        console.log('[Zaid Ashiq X Ultra V. Coder] Bot in standby. Sign in or register to pair and manage WhatsApp sessions!');
+        console.log('[Zaid Ashiq X Ultra V. Coder] Bot ready! Open the dashboard directly to pair and manage WhatsApp sessions (no login required).');
     }
 });
 

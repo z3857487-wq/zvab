@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="Zaid Ashiq X Ultra V. Coder" />
   <link rel="icon" type="image/png" href="/assets/aistudio/file_00000000f0bc8208be82cd16e83afef8_ac51e6b8.png" />
 
-  <!-- Immediate Cache Buster & GitHub Startup Auth Redirect Guard -->
+  <!-- Immediate Cache Buster & Service Worker Updater -->
   <script>
     (function() {
       try {
@@ -29,31 +29,6 @@
           });
         }
       } catch (_) {}
-
-      var params = new URLSearchParams(window.location.search);
-      var urlToken = params.get('auth_token');
-      if (urlToken) {
-        try {
-          localStorage.setItem('urooj_auth_token', urlToken);
-          window.history.replaceState({}, document.title, '/');
-        } catch (_) {}
-        return;
-      }
-
-      var savedToken = null;
-      var savedUser = null;
-      try {
-        savedToken = localStorage.getItem('urooj_auth_token');
-        savedUser = JSON.parse(localStorage.getItem('urooj_user') || 'null');
-      } catch (_) {}
-
-      if (!savedToken || (savedUser && savedUser.provider && savedUser.provider !== 'github')) {
-        try {
-          localStorage.removeItem('urooj_auth_token');
-          localStorage.removeItem('urooj_user');
-        } catch (_) {}
-        window.location.replace('/login');
-      }
     })();
   </script>
 
@@ -224,25 +199,7 @@
 <body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-amber-500 selection:text-slate-950">
 
   <!-- ========================================================================= -->
-  <!-- 🔐 AUTHENTICATION GATE (SEPARATE /login REDIRECT GUARD)                   -->
-  <!-- ========================================================================= -->
-  <div id="authModalOverlay" class="fixed inset-0 z-50 bg-[#04070e] flex items-center justify-center p-6">
-    <div id="authCard" class="w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-2xl">
-      <div class="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center mx-auto">
-        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-        </svg>
-      </div>
-      <div class="text-base font-black text-white">Verifying GitHub Session...</div>
-      <p class="text-xs text-slate-400">Redirecting to the dedicated GitHub Login Page if not signed in.</p>
-      <a href="/login" class="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-white text-slate-950 font-black text-xs hover:bg-slate-100 transition">
-        <span>Go to GitHub Login Page</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 👑 MAIN APPLICATION DASHBOARD                                             -->
+  <!-- 👑 MAIN APPLICATION DASHBOARD (DIRECT ACCESS — NO LOGIN REQUIRED)         -->
   <!-- ========================================================================= -->
   
   <!-- Navigation Header (Two-Row Stacked Layout: Full Brand Name on Top, Navigation Bar Underneath) -->
@@ -292,11 +249,22 @@
             <span>Back to Apps Gallery</span>
           </button>
 
-          <!-- Authenticated User Identity Badge -->
+          <!-- 🖼️ FULL PROFILE PICTURE BUTTON (Direct Dashboard Access) -->
+          <button
+            type="button"
+            onclick="switchTab('fullpp')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 font-bold text-xs transition active:scale-95 cursor-pointer"
+            title="Set Full Uncropped WhatsApp Profile Picture (Personal or Group DP)"
+          >
+            <span class="text-sm">🖼️</span>
+            <span>Full Profile Pic</span>
+          </button>
+
+          <!-- Direct Owner Identity Badge -->
           <div id="userBadge" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 text-xs">
-            <span id="userRoleIcon">👤</span>
-            <span id="userNameText" class="font-bold text-slate-200 text-xs max-w-[110px] sm:max-w-[160px] truncate">Guest</span>
-            <span id="userRoleTag" class="hidden sm:inline-block text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold">Member</span>
+            <span id="userRoleIcon">👑</span>
+            <span id="userNameText" class="font-bold text-slate-200 text-xs max-w-[140px] sm:max-w-[200px] truncate">Zaid Ashiq X Ultra V. Coder</span>
+            <span id="userRoleTag" class="hidden sm:inline-block text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold">Direct Access</span>
           </div>
         </div>
 
@@ -306,18 +274,6 @@
             <span id="statusIndicator" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span id="statusText" class="font-medium text-slate-300 text-[11px]">Standby</span>
           </div>
-
-          <!-- Sign Out / Switch Account Button -->
-          <button
-            type="button"
-            id="navLogoutBtn"
-            onclick="handleLogout()"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs transition active:scale-95 cursor-pointer"
-            title="Sign out or switch to another user account"
-          >
-            <span>🚪</span>
-            <span>Sign Out</span>
-          </button>
         </div>
       </div>
 
@@ -381,6 +337,19 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           
+          <!-- 0A. Full No-Crop Profile Picture Studio -->
+          <div
+            onclick="selectService('fullpp')"
+            class="p-4 rounded-2xl bg-slate-900/90 hover:bg-amber-950/35 border border-amber-500/40 hover:border-amber-400 transition cursor-pointer group"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl group-hover:scale-110 transition-transform">🖼️</span>
+              <span class="font-mono text-[10px] font-bold text-amber-300 uppercase">.fdp / No-Crop</span>
+            </div>
+            <h3 class="font-bold text-sm text-amber-300 group-hover:text-white transition">Full Profile Picture</h3>
+            <p class="text-xs text-slate-300 mt-1 line-clamp-2">Upload full uncropped Personal or Group DPs directly via your active WhatsApp session.</p>
+          </div>
+
           <!-- 0. WhatsApp Status (Story) Uploader -->
           <div 
             onclick="selectService('status')" 
@@ -570,11 +539,11 @@
             <p class="text-xs text-slate-400 mt-1 line-clamp-2">Live Railway Volume telemetry, Raw Env generator, manifest viewer &amp; 1-click deployable ZIP.</p>
           </div>
 
-          <!-- 10. Super Admin Console (Hidden for non-admins) -->
+          <!-- 10. System & Session Console -->
           <div 
             id="drawerAdminCard"
             onclick="selectService('admin')" 
-            class="hidden p-4 rounded-2xl bg-slate-900/80 hover:bg-amber-950/40 border border-slate-800 hover:border-amber-500/50 shadow-sm hover:shadow-lg hover:shadow-amber-950/40 transition cursor-pointer group"
+            class="p-4 rounded-2xl bg-slate-900/80 hover:bg-amber-950/40 border border-slate-800 hover:border-amber-500/50 shadow-sm hover:shadow-lg hover:shadow-amber-950/40 transition cursor-pointer group"
           >
             <div class="flex items-center justify-between mb-2">
               <span class="text-2xl group-hover:scale-110 transition-transform">👑</span>
@@ -729,6 +698,14 @@
               <span>💬</span>
               <span>Get Chats / Export Chat (.zip)</span>
             </button>
+            <button
+              type="button"
+              onclick="switchTab('fullpp')"
+              class="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg shadow-amber-950/50 transition cursor-pointer flex items-center gap-1.5"
+            >
+              <span>🖼️</span>
+              <span>Full Profile Pic (No Crop)</span>
+            </button>
           </div>
         </div>
 
@@ -794,7 +771,7 @@
             <span>Strong Auth Watchdog: <strong class="text-emerald-400 font-mono">ACTIVE (Never Expires Until Deleted from Services or Unlinked on Phone)</strong></span>
           </div>
           <div class="font-mono text-amber-300">
-            Triggers: <strong>.getcontacts</strong> &middot; <strong>.getchat &lt;num&gt;</strong> &middot; <strong>Emoji Reply on Status</strong> &middot; <strong>.char {link} 💞</strong> &middot; <strong>.variable</strong>
+            Triggers: <strong>.fdp</strong> &middot; <strong>.fgdp</strong> &middot; <strong>.getcontacts</strong> &middot; <strong>.getchat &lt;num&gt;</strong> &middot; <strong>.char {link} 💞</strong> &middot; <strong>.variable</strong>
           </div>
         </div>
 
@@ -3322,7 +3299,7 @@
             <div class="flex items-center gap-2 pt-1 text-xs font-mono text-slate-400 flex-wrap">
               <span id="rwBridgeActiveBadge" class="text-emerald-400 font-bold">● Active Target: Same-Origin / Local</span>
               <span aria-hidden="true">&middot;</span>
-              <span id="rwAuthPersistenceBadge" class="text-amber-300">Auth: Permanent 10-Year HMAC + Auto-Rehydrate</span>
+              <span id="rwAuthPersistenceBadge" class="text-emerald-300">Zero-Config: No Login &amp; No Variables Required</span>
               <span aria-hidden="true">&middot;</span>
               <span class="text-sky-400">Keep-Alive: 45s Anti-Sleep Heartbeat</span>
             </div>
@@ -3550,8 +3527,8 @@
             </div>
           </div>
 
-          <div class="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
-            💡 <strong>Zero-Logout Secret:</strong> Keep <code class="text-slate-200 font-mono">PERMANENT_AUTH_SECRET</code> identical on both Railway and AI Studio so your 10-year HMAC login token works seamlessly across both servers without ever logging out.
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] text-emerald-300">
+            🚀 <strong>Zero Variables Needed on Railway:</strong> Just deploy and run! All defaults are built directly into the server—only add environment variables above if you want to override something.
           </div>
         </div>
 
@@ -3614,26 +3591,26 @@
             </div>
           </div>
 
-          <!-- 3-Step Hybrid Railway + AI Studio Publishing Checklist -->
+          <!-- Zero-Config Railway Deployment Checklist -->
           <div class="p-5 sm:p-6 rounded-2xl bg-slate-900/85 border border-slate-800 space-y-3.5">
-            <h3 class="text-base font-bold text-white">3-Step Railway Backend + AI Studio Frontend Setup</h3>
+            <h3 class="text-base font-bold text-white">Zero-Config Railway Deploy &amp; Run</h3>
             <div class="space-y-3 text-xs text-slate-300">
               <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                <div class="font-bold text-white">01. Deploy Backend on Railway with <code class="text-emerald-400 font-mono">/app/data</code> Volume</div>
+                <div class="font-bold text-white">01. Deploy Directly on Railway (No Variables Required)</div>
                 <p class="text-slate-400 mt-0.5">
-                  Click <strong>⬇ Download Railway Project (.ZIP)</strong> above and deploy to Railway. Press <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 font-mono">⌘K</kbd> &rarr; <strong>Add Volume</strong> mounted at <code class="text-emerald-400 font-mono">/app/data</code>, paste the <strong>Railway .ENV</strong> block, and generate your public Railway domain.
+                  Deploy this repo or click <strong>⬇ Download Railway Project (.ZIP)</strong>. Railway uses <code class="text-emerald-400 font-mono">Dockerfile</code> + <code class="text-emerald-400 font-mono">railway.json</code> to build and run <code class="text-amber-300 font-mono">node server.js</code> automatically with zero required environment variables.
                 </p>
               </div>
               <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                <div class="font-bold text-white">02. Link AI Studio Frontend to Your Railway URL</div>
+                <div class="font-bold text-white">02. Optional Persistent Volume (<code class="text-emerald-400 font-mono">/app/data</code>)</div>
                 <p class="text-slate-400 mt-0.5">
-                  Paste your <code class="text-amber-300 font-mono">https://xxxx.up.railway.app</code> domain into the <strong>RAILWAY_BACKEND_URL</strong> input at the top of this tab (or set <code class="text-sky-300 font-mono">RAILWAY_BACKEND_URL</code> in AI Studio's environment variables) and click <strong>Save &amp; Connect Bridge</strong>.
+                  Want WhatsApp sessions &amp; Vault media to persist across redeploys? Attach a Railway Volume mounted at <code class="text-emerald-400 font-mono">/app/data</code>. Otherwise the app automatically uses local storage and runs right away.
                 </p>
               </div>
               <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                <div class="font-bold text-white">03. Publish in AI Studio (Static UI &middot; Zero Logout &middot; No Restarting)</div>
+                <div class="font-bold text-white">03. Open Your Railway Domain &amp; Pair WhatsApp</div>
                 <p class="text-slate-400 mt-0.5">
-                  Publish your app in Google AI Studio. Because your WhatsApp sockets run 24/7 on Railway and your browser holds a 10-year HMAC token with auto-rehydration, opening your published AI Studio URL is instant, never logs out, and never restarts your bot!
+                  Generate your Railway domain (<code class="text-amber-300 font-mono">Settings &rarr; Networking &rarr; Generate Domain</code>) and open it directly—no login gate, no OAuth keys, full dashboard access immediately!
                 </p>
               </div>
             </div>
@@ -4610,6 +4587,263 @@
     </section>
 
     <!-- ======================================================================= -->
+    <!-- 🖼️ TAB: FULL PROFILE PICTURE STUDIO (NO-CROP PERSONAL & GROUP DP)       -->
+    <!-- ======================================================================= -->
+    <section id="tab-fullpp" class="tab-content hidden space-y-6">
+      <!-- Top Studio Header -->
+      <div class="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-start gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xl shrink-0">
+            🖼️
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">Full Profile Picture Studio</h2>
+              <span class="text-[11px] font-mono text-amber-400">NO-CROP 720px FIT</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed max-w-2xl">
+              Upload any portrait or landscape photo to WhatsApp without square cropping using your active connected session. Also works in WhatsApp by replying <code class="font-mono text-amber-300">.fdp</code> (or <code class="font-mono text-amber-300">.fgdp</code> for groups) to any photo.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onclick="fetchFullPpCurrentProfile()"
+            class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer"
+          >
+            Refresh Session
+          </button>
+          <button
+            type="button"
+            onclick="switchTab('gallery')"
+            class="px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-semibold transition cursor-pointer"
+          >
+            ⬅ Apps Gallery
+          </button>
+        </div>
+      </div>
+
+      <!-- Disconnected Session Warning Banner -->
+      <div id="fullPpDisconnectedBanner" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="space-y-0.5">
+          <div class="text-xs font-bold text-amber-300">No Active WhatsApp Session Connected</div>
+          <p class="text-xs text-slate-300">Pair your WhatsApp account in Device Pairing first to apply Personal or Group profile pictures from the dashboard.</p>
+        </div>
+        <button
+          type="button"
+          onclick="switchTab('session')"
+          class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition shrink-0 cursor-pointer"
+        >
+          Open Device Pairing →
+        </button>
+      </div>
+
+      <!-- Main Studio Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left Column: Target Mode + Uploader + Submit -->
+        <div class="lg:col-span-7 p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5">
+          <!-- Segmented Target Toggle: Personal DP | Group DP -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Target Account</div>
+              <div id="fullPpSessionSummary" class="text-xs text-slate-300 font-mono mt-0.5 tabular-nums">Checking active WhatsApp session…</div>
+            </div>
+            <div class="inline-flex p-1 rounded-xl bg-slate-950 border border-slate-800 self-start sm:self-auto" role="tablist" aria-label="Profile Picture Target Mode">
+              <button
+                type="button"
+                id="fullPpModePersonalBtn"
+                onclick="setFullPpTargetMode('personal')"
+                class="px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer bg-amber-400 text-slate-950"
+              >
+                Personal DP
+              </button>
+              <button
+                type="button"
+                id="fullPpModeGroupBtn"
+                onclick="setFullPpTargetMode('group')"
+                class="px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white"
+              >
+                Group DP
+              </button>
+            </div>
+          </div>
+
+          <!-- Personal Mode Active Account Info -->
+          <div id="fullPpPersonalInfoRow" class="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-11 h-11 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                <img id="fullPpCurrentAvatarImg" src="" alt="Current DP" class="hidden w-full h-full object-cover" />
+                <span id="fullPpCurrentAvatarFallback" class="text-base text-slate-400">👤</span>
+              </div>
+              <div class="min-w-0">
+                <div id="fullPpCurrentName" class="text-sm font-bold text-white truncate">Active WhatsApp Account</div>
+                <div id="fullPpCurrentPhone" class="text-xs font-mono text-slate-400 tabular-nums truncate">Waiting for connected session</div>
+              </div>
+            </div>
+            <span id="fullPpConnDot" class="text-[11px] font-mono text-slate-400 shrink-0">Standby</span>
+          </div>
+
+          <!-- Group Mode Selector Panel (Hidden in Personal Mode) -->
+          <div id="fullPpGroupSelectorPanel" class="hidden space-y-3 p-4 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="flex items-center justify-between gap-2">
+              <label for="fullPpGroupSelect" class="text-xs font-semibold text-slate-200">Select Active WhatsApp Group</label>
+              <button
+                type="button"
+                onclick="fetchFullPpGroups()"
+                class="text-[11px] font-semibold text-amber-400 hover:text-amber-300 cursor-pointer"
+              >
+                ↻ Reload Groups
+              </button>
+            </div>
+
+            <input
+              type="text"
+              id="fullPpGroupSearch"
+              oninput="filterFullPpGroups()"
+              placeholder="Filter groups by name or JID..."
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 outline-none focus:border-amber-400"
+            />
+
+            <select
+              id="fullPpGroupSelect"
+              onchange="onFullPpGroupDropdownChange()"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-amber-400"
+            >
+              <option value="">-- Select a WhatsApp Group --</option>
+            </select>
+
+            <div class="space-y-1">
+              <label for="fullPpGroupJidInput" class="text-[11px] font-medium text-slate-400">Or enter Group JID manually</label>
+              <input
+                type="text"
+                id="fullPpGroupJidInput"
+                placeholder="120363012345678901@g.us"
+                class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-amber-200 placeholder-slate-600 outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div id="fullPpGroupStatusNote" class="text-[11px] text-slate-400">
+              Groups where the bot can edit the group icon are listed first.
+            </div>
+          </div>
+
+          <!-- Drag & Drop Photo Uploader -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-200">Choose Photo</label>
+              <span class="text-[11px] font-mono text-slate-400">JPG · PNG · WebP · Max 15 MB</span>
+            </div>
+
+            <div
+              id="fullPpDropzone"
+              onclick="document.getElementById('fullPpFileInput').click()"
+              ondragover="handleFullPpDragOver(event)"
+              ondragleave="handleFullPpDragLeave(event)"
+              ondrop="handleFullPpDrop(event)"
+              class="p-6 rounded-xl border border-dashed border-slate-700 hover:border-amber-400/70 bg-slate-950/80 hover:bg-slate-950 transition cursor-pointer text-center space-y-2"
+            >
+              <input
+                type="file"
+                id="fullPpFileInput"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="hidden"
+                onchange="handleFullPpFileInputChange(event)"
+              />
+              <div class="text-2xl">📸</div>
+              <div class="text-sm font-semibold text-white">Drop an image here or click to browse</div>
+              <p class="text-xs text-slate-400">Full composition is preserved proportionally inside 720×720 without cropping.</p>
+            </div>
+
+            <!-- Selected Image Spec Readout -->
+            <div id="fullPpFileMeta" class="hidden p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div class="min-w-0 space-y-0.5">
+                <div id="fullPpFileName" class="text-xs font-semibold text-white truncate max-w-[260px]">photo.jpg</div>
+                <div id="fullPpFileDims" class="text-[11px] font-mono text-slate-400 tabular-nums">Original: -- · Output: -- · Size: --</div>
+              </div>
+              <button
+                type="button"
+                onclick="clearFullPpFile()"
+                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition cursor-pointer"
+              >
+                Clear Photo
+              </button>
+            </div>
+          </div>
+
+          <!-- Feedback Alert Box -->
+          <div id="fullPpAlertBox" class="hidden p-3.5 rounded-xl text-xs font-medium border"></div>
+
+          <!-- Submit Button -->
+          <button
+            type="button"
+            id="fullPpApplyBtn"
+            onclick="submitFullProfilePicture()"
+            class="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-black text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span id="fullPpApplyBtnText">Apply Full Personal Profile Picture (No Crop)</span>
+          </button>
+        </div>
+
+        <!-- Right Column: Dual Live Preview + WhatsApp Command Reference -->
+        <div class="lg:col-span-5 space-y-5">
+          <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white">Live Preview</h3>
+                <p class="text-[11px] text-slate-400">Compare full tap-to-view frame vs. circular chat thumbnail</p>
+              </div>
+              <span id="fullPpPreviewRatio" class="text-[11px] font-mono text-slate-400 tabular-nums">No photo</span>
+            </div>
+
+            <!-- Full Uncropped Frame Preview -->
+            <div class="space-y-1.5">
+              <div class="text-[11px] font-semibold text-slate-300">Full Uncropped View (Tap to Expand)</div>
+              <div class="aspect-square max-h-64 w-full rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden p-2">
+                <img id="fullPpFramePreviewImg" src="" alt="Full frame preview" class="hidden max-w-full max-h-full object-contain rounded-lg" />
+                <div id="fullPpFramePreviewEmpty" class="text-center space-y-1 px-4">
+                  <div class="text-xs font-medium text-slate-400">Select a photo to preview full uncropped framing</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp Circular Avatar Preview -->
+            <div class="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+              <div class="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                <img id="fullPpCirclePreviewImg" src="" alt="Circle preview" class="hidden w-full h-full object-cover" />
+                <span id="fullPpCirclePreviewEmpty" class="text-lg text-slate-500">🖼️</span>
+              </div>
+              <div class="min-w-0">
+                <div id="fullPpPreviewTitle" class="text-xs font-bold text-white truncate">WhatsApp Chat Avatar Preview</div>
+                <div class="text-[11px] text-slate-400">Circular thumbnail in chat list; tapping opens the full uncropped photo.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WhatsApp .fdp Quick Reference -->
+          <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+            <div class="text-xs font-bold text-white">WhatsApp Reply Commands</div>
+            <div class="space-y-1.5 text-xs text-slate-300">
+              <div class="flex items-center justify-between gap-2 py-1 border-b border-slate-800/70">
+                <code class="font-mono text-amber-300 font-semibold">.fdp</code>
+                <span class="text-slate-400 text-[11px]">Reply to any photo (or photo caption) → Personal DP</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 py-1 border-b border-slate-800/70">
+                <code class="font-mono text-amber-300 font-semibold">.fdp group / .fgdp</code>
+                <span class="text-slate-400 text-[11px]">Reply to any photo in a group → Group DP</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <span class="font-mono text-[11px] text-emerald-400">+923299931199</span>
+                <span class="text-slate-400 text-[11px]">Full co-owner access across all commands</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================= -->
     <!-- 💬 TAB: GET CHATS / EXPORT CHAT (.ZIP + LIVE VIEW) & GET STATUS         -->
     <!-- ======================================================================= -->
     <section id="tab-chats" class="tab-content hidden space-y-6">
@@ -4839,10 +5073,7 @@
   <!-- ========================================================================= -->
   <script>
     // State constants
-    const TOKEN_KEY = 'urooj_auth_token';
-    const USER_KEY = 'urooj_user';
     const DEVICE_KEY = 'urooj_device_id';
-    const REAUTH_KEY = 'urooj_reauth_creds';
     const BRIDGE_URL_KEY = 'urooj_railway_backend_url';
 
     let currentDeviceId = localStorage.getItem(DEVICE_KEY) || null;
@@ -4864,7 +5095,6 @@
 
     function resolveBridgeUrl(url) {
       if (typeof url !== 'string') return url;
-      // Keep /api/config/bridge on the AI Studio frontend host unless explicitly testing remote
       if (url.startsWith('/api/config/bridge')) return url;
       if (activeRailwayBackendUrl && (url.startsWith('/api/') || url.startsWith('/download/') || url === '/health')) {
         return activeRailwayBackendUrl + url;
@@ -4872,12 +5102,11 @@
       return url;
     }
 
-    // Automatically attach X-Device-Id, permanent Authorization token, and route via RAILWAY_BACKEND_URL bridge
+    // Automatically attach X-Device-Id and route via optional RAILWAY_BACKEND_URL bridge
     const _nativeFetch = window.fetch.bind(window);
     window.fetch = async function(url, options) {
       options = options || {};
       const devId = getOrCreateDeviceId();
-      const savedTok = localStorage.getItem(TOKEN_KEY);
 
       if (!options.headers) {
         options.headers = { 'X-Device-Id': devId };
@@ -4889,19 +5118,10 @@
         if (!options.headers['X-Device-Id']) options.headers['X-Device-Id'] = devId;
       }
 
-      if (savedTok) {
-        if (options.headers instanceof Headers) {
-          if (!options.headers.has('Authorization')) options.headers.set('Authorization', `Bearer ${savedTok}`);
-        } else if (typeof options.headers === 'object' && !Array.isArray(options.headers)) {
-          if (!options.headers['Authorization']) options.headers['Authorization'] = `Bearer ${savedTok}`;
-        }
-      }
-
       const targetUrl = resolveBridgeUrl(url);
       try {
         return await _nativeFetch(targetUrl, options);
       } catch (err) {
-        // Automatic resilient fallback to local origin if custom Railway URL is temporarily unreachable
         if (targetUrl !== url) {
           return _nativeFetch(url, options);
         }
@@ -4909,12 +5129,13 @@
       }
     };
 
-    let currentUser = null;
-    try {
-      const cachedUserStr = localStorage.getItem(USER_KEY);
-      if (cachedUserStr) currentUser = JSON.parse(cachedUserStr);
-    } catch (_) {}
-    let currentAuthToken = localStorage.getItem(TOKEN_KEY) || null;
+    let currentUser = {
+      id: 1,
+      username: 'Zaid Ashiq X Ultra V. Coder',
+      role: 'admin',
+      directAccess: true
+    };
+    let currentAuthToken = null;
     let allCommands = [];
     let currentCategory = 'all';
     let currentMediaType = 'ptv';
@@ -4941,10 +5162,9 @@
     ];
 
     // ──────────────────────────────────────────────────────────────────────────
-    // AUTHENTICATION & DEVICE-BOUND ISOLATION ENGINE (GITHUB OAUTH ONLY)
+    // DIRECT DASHBOARD INITIALIZATION (NO LOGIN REQUIRED)
     // ──────────────────────────────────────────────────────────────────────────
 
-    // Zero-Logout Permanent Session + Auto-Rehydration Engine
     async function initBridgeConfig() {
       try {
         const res = await _nativeFetch('/api/config/bridge');
@@ -4980,44 +5200,8 @@
     async function checkAuthSession() {
       getOrCreateDeviceId();
       await initBridgeConfig();
-
-      // Capture ?auth_token= if redirected from GitHub OAuth callback
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlToken = urlParams.get('auth_token');
-      if (urlToken) {
-        localStorage.setItem(TOKEN_KEY, urlToken);
-        currentAuthToken = urlToken;
-        try {
-          window.history.replaceState({}, document.title, '/');
-        } catch (_) {}
-      }
-
-      const token = localStorage.getItem(TOKEN_KEY);
-
-      if (token) {
-        try {
-          const res = await fetch('/api/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (res.ok && data.authenticated && data.user) {
-            currentAuthToken = token;
-            currentUser = data.user;
-            localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
-            hideAuthModal();
-            updateUserUI();
-            refreshUserDashboardState();
-            return;
-          }
-        } catch (_) {}
-      }
-
-      // Unauthenticated: clear stale state and redirect to the separate /login page
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      currentUser = null;
-      currentAuthToken = null;
-      window.location.replace('/login');
+      updateUserUI();
+      refreshUserDashboardState();
     }
 
     function refreshUserDashboardState() {
@@ -5026,51 +5210,7 @@
       fetchMySessions();
       fetchStatus();
       loadScheduledQueue();
-      if (currentUser && currentUser.role === 'admin') {
-        fetchAdminOverview();
-      }
-    }
-
-    function showAuthModal() {
-      window.location.replace('/login');
-    }
-
-    function hideAuthModal() {
-      const overlay = document.getElementById('authModalOverlay');
-      if (overlay) overlay.classList.add('hidden');
-      const mainEl = document.querySelector('main');
-      const headerEl = document.querySelector('header');
-      const dockEl = document.getElementById('springboardBottomDock');
-      if (mainEl) mainEl.classList.remove('hidden');
-      if (headerEl) headerEl.classList.remove('hidden');
-      if (dockEl) dockEl.classList.remove('hidden');
-    }
-
-    function completeLoginAndProceed(token, user) {
-      currentAuthToken = token;
-      currentUser = user;
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-      hideAuthModal();
-      updateUserUI();
-      refreshUserDashboardState();
-    }
-
-    async function handleLogout() {
-      if (currentAuthToken) {
-        try {
-          await fetch('/api/auth/signout', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${currentAuthToken}` }
-          });
-        } catch (_) {}
-      }
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(REAUTH_KEY);
-      currentUser = null;
-      currentAuthToken = null;
-      window.location.replace('/login');
+      fetchAdminOverview();
     }
 
     function updateUserUI() {
@@ -5081,41 +5221,15 @@
       const mobileNavAdminBtn = document.getElementById('mobileNavAdminBtn');
       const drawerAdminCard = document.getElementById('drawerAdminCard');
 
-      if (!currentUser) {
-        if (roleIcon) roleIcon.textContent = '🔒';
-        if (nameText) nameText.textContent = 'Not Signed In';
-        if (roleTag) {
-          roleTag.textContent = 'Locked';
-          roleTag.className = 'hidden md:inline-block text-[9px] px-1.5 py-0.2 rounded bg-slate-700 text-slate-300 font-mono font-bold';
-        }
-        if (adminTabBtn) adminTabBtn.classList.add('hidden');
-        if (mobileNavAdminBtn) mobileNavAdminBtn.classList.add('hidden');
-        if (drawerAdminCard) drawerAdminCard.classList.add('hidden');
-        return;
+      if (roleIcon) roleIcon.textContent = '👑';
+      if (nameText) nameText.textContent = currentUser?.username || 'Zaid Ashiq X Ultra V. Coder';
+      if (roleTag) {
+        roleTag.textContent = 'Direct Access';
+        roleTag.className = 'hidden md:inline-block text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold uppercase font-mono';
       }
-
-      if (nameText) nameText.textContent = currentUser.username || 'User';
-      const isAdmin = currentUser.role === 'admin';
-
-      if (isAdmin) {
-        if (roleIcon) roleIcon.textContent = '👑';
-        if (roleTag) {
-          roleTag.textContent = 'Super Admin';
-          roleTag.className = 'hidden md:inline-block text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-extrabold uppercase font-mono';
-        }
-        if (adminTabBtn) adminTabBtn.classList.remove('hidden');
-        if (mobileNavAdminBtn) mobileNavAdminBtn.classList.remove('hidden');
-        if (drawerAdminCard) drawerAdminCard.classList.remove('hidden');
-      } else {
-        if (roleIcon) roleIcon.textContent = '👤';
-        if (roleTag) {
-          roleTag.textContent = 'My Dashboard';
-          roleTag.className = 'hidden md:inline-block text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold uppercase font-mono';
-        }
-        if (adminTabBtn) adminTabBtn.classList.add('hidden');
-        if (mobileNavAdminBtn) mobileNavAdminBtn.classList.add('hidden');
-        if (drawerAdminCard) drawerAdminCard.classList.add('hidden');
-      }
+      if (adminTabBtn) adminTabBtn.classList.remove('hidden');
+      if (mobileNavAdminBtn) mobileNavAdminBtn.classList.remove('hidden');
+      if (drawerAdminCard) drawerAdminCard.classList.remove('hidden');
       renderSpringboardAppsGallery();
     }
 
@@ -5123,6 +5237,12 @@
     // ⚡ FULL-SCREEN ALL SERVICES DRAWER NAVIGATION
     // ──────────────────────────────────────────────────────────────────────────
     const SERVICE_CATALOG = {
+      fullpp: {
+        title: 'Full Profile Picture Studio',
+        icon: '🖼️',
+        badge: 'No-Crop .fdp',
+        desc: 'Upload full uncropped Personal or Group profile pictures directly through your active WhatsApp session'
+      },
       location: { 
         title: 'Native Live Location', 
         icon: '📍', 
@@ -5363,6 +5483,7 @@
       }
       if (tabId === 'simdb') fetchSimDbStatus();
       if (tabId === 'appdeploy') fetchAppDeployStudioStatus();
+      if (tabId === 'fullpp') initFullPpStudio();
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -5561,14 +5682,11 @@
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // 👑 SUPER ADMIN CONSOLE LOGIC (Strictly Urooj)
+    // 👑 SYSTEM & SESSION CONSOLE LOGIC
     // ──────────────────────────────────────────────────────────────────────────
     async function fetchAdminOverview() {
-      if (!currentAuthToken) return;
       try {
-        const res = await fetch('/api/admin/overview', {
-          headers: { 'Authorization': `Bearer ${currentAuthToken}` }
-        });
+        const res = await fetch('/api/admin/overview');
         const data = await res.json();
         if (res.ok && data.success) {
           const uEl = document.getElementById('adminStatUsers');
@@ -7393,32 +7511,17 @@
       const bridgeUrl = document.getElementById('rwBridgeUrlInput')?.value?.trim().replace(/\/+$/, '') || activeRailwayBackendUrl || 'https://your-project-production.up.railway.app';
 
       const railwayLines = [
-        `NODE_ENV=production`,
+        `# Zero variables are required on Railway — just deploy and run!`,
+        `# Optional overrides:`,
         `PORT=3000`,
+        `NODE_ENV=production`,
         `RAILWAY_VOLUME_MOUNT_PATH=${volumePath}`,
-        `SQLITE_PATH=${volumePath}/urooj_suite.db`,
-        `DB_TYPE=sqlite`,
         `BOT_NAME=${botName}`,
         `BOT_OWNER=${botOwner}`,
         `OWNER_NUMBER=${ownerNumber}`,
         `PREFIX=${prefix}`,
         `COMMAND_MODE=public`,
-        `PERMANENT_AUTH_SECRET=urooj-master-permanent-secret-254141693915`,
-        `AUTO_REAUTH_ENABLED=true`,
-        `CORS_ORIGIN=*`,
-        `KEEP_ALIVE_INTERVAL_MS=45000`,
-        `AUTOREAD=true`,
-        `AUTOTYPE=true`,
-        `AUTORECORD=true`,
-        `AUTORECORDTYPE=true`,
-        `AUTO_STATUS_REACT=true`,
-        `AUTO_STATUS_REPLY=true`,
-        `ALWAYSONLINE=false`,
-        `BUTTONMODE=true`,
-        `STATUS_UPLOADER_ENABLED=true`,
-        `STATUS_VOICE_NOTE_ENABLED=true`,
         `TIMEZONE=Asia/Karachi`,
-        `SIM_DB_API_URL=https://sim-db-api.faizankhichi.me/`,
         `SESSION_ID=${sessionId}`
       ];
 
@@ -7426,8 +7529,6 @@
         `PORT=3000`,
         `NODE_ENV=production`,
         `RAILWAY_BACKEND_URL=${bridgeUrl}`,
-        `PERMANENT_AUTH_SECRET=urooj-master-permanent-secret-254141693915`,
-        `AUTO_REAUTH_ENABLED=true`,
         `CORS_ORIGIN=*`,
         `OWNER_NUMBER=${ownerNumber}`
       ];
@@ -7655,6 +7756,18 @@
     let currentGalleryCategory = 'all';
 
     const SPRINGBOARD_APPS = [
+      {
+        id: 'fullpp',
+        name: 'Full Profile Pic',
+        sub: 'No-Crop .fdp Studio',
+        icon: '🖼️',
+        image: '',
+        badge: '.fdp',
+        badgeColor: 'bg-amber-300 text-slate-950',
+        gradient: 'from-amber-400 via-orange-500 to-rose-500',
+        category: 'messaging',
+        action: () => switchTab('fullpp')
+      },
       {
         id: 'appdeploy',
         name: 'AppDeploy AI',
@@ -7909,10 +8022,8 @@
       const grid = document.getElementById('springboardAppsGrid');
       if (!grid) return;
       const query = (document.getElementById('appGallerySearchInput')?.value || '').trim().toLowerCase();
-      const isAdmin = currentUser && currentUser.role === 'admin';
 
       const filtered = SPRINGBOARD_APPS.filter(app => {
-        if (app.id === 'admin' && !isAdmin) return false;
         const matchCat = currentGalleryCategory === 'all' || app.category === currentGalleryCategory;
         const matchQuery = !query ||
           app.name.toLowerCase().includes(query) ||
@@ -10875,6 +10986,355 @@
         }
       } catch (err) {
         showChatsToast(err.message, true);
+      }
+    }
+
+    // =========================================================================
+    // 🖼️ FULL NO-CROP PROFILE PICTURE STUDIO CONTROLLER
+    // =========================================================================
+    let fullPpSelectedFile = null;
+    let fullPpPreviewObjectUrl = null;
+    let fullPpTargetMode = 'personal';
+    let fullPpLoadedGroups = [];
+
+    function initFullPpStudio() {
+      fetchFullPpCurrentProfile();
+      if (fullPpTargetMode === 'group') {
+        fetchFullPpGroups();
+      }
+      updateFullPpApplyLabel();
+    }
+
+    function setFullPpAlert(message, type = 'info') {
+      const box = document.getElementById('fullPpAlertBox');
+      if (!box) return;
+      if (!message) {
+        box.classList.add('hidden');
+        box.textContent = '';
+        return;
+      }
+      box.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300', 'bg-slate-800', 'border-slate-700', 'text-slate-200');
+      if (type === 'success') {
+        box.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
+      } else if (type === 'error') {
+        box.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+      } else {
+        box.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-200');
+      }
+      box.textContent = message;
+    }
+
+    function updateFullPpApplyLabel() {
+      const txt = document.getElementById('fullPpApplyBtnText');
+      if (!txt) return;
+      txt.textContent = fullPpTargetMode === 'group'
+        ? 'Apply Full Group Profile Picture (No Crop)'
+        : 'Apply Full Personal Profile Picture (No Crop)';
+    }
+
+    function setFullPpTargetMode(mode) {
+      fullPpTargetMode = mode === 'group' ? 'group' : 'personal';
+      const personalBtn = document.getElementById('fullPpModePersonalBtn');
+      const groupBtn = document.getElementById('fullPpModeGroupBtn');
+      const personalRow = document.getElementById('fullPpPersonalInfoRow');
+      const groupPanel = document.getElementById('fullPpGroupSelectorPanel');
+      const previewTitle = document.getElementById('fullPpPreviewTitle');
+
+      if (personalBtn && groupBtn) {
+        if (fullPpTargetMode === 'personal') {
+          personalBtn.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer bg-amber-400 text-slate-950';
+          groupBtn.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white';
+        } else {
+          groupBtn.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer bg-amber-400 text-slate-950';
+          personalBtn.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white';
+        }
+      }
+
+      if (personalRow) personalRow.classList.toggle('hidden', fullPpTargetMode !== 'personal');
+      if (groupPanel) groupPanel.classList.toggle('hidden', fullPpTargetMode !== 'group');
+      if (previewTitle) {
+        previewTitle.textContent = fullPpTargetMode === 'group'
+          ? 'Group Icon Preview'
+          : 'Personal Avatar Preview';
+      }
+
+      updateFullPpApplyLabel();
+      setFullPpAlert('');
+
+      if (fullPpTargetMode === 'group' && fullPpLoadedGroups.length === 0) {
+        fetchFullPpGroups();
+      }
+    }
+
+    async function fetchFullPpCurrentProfile() {
+      const summaryEl = document.getElementById('fullPpSessionSummary');
+      const bannerEl = document.getElementById('fullPpDisconnectedBanner');
+      const nameEl = document.getElementById('fullPpCurrentName');
+      const phoneEl = document.getElementById('fullPpCurrentPhone');
+      const connDot = document.getElementById('fullPpConnDot');
+      const avatarImg = document.getElementById('fullPpCurrentAvatarImg');
+      const avatarFallback = document.getElementById('fullPpCurrentAvatarFallback');
+
+      try {
+        const res = await fetch('/api/profile-pic/current');
+        const data = await res.json();
+        if (data && data.connected) {
+          if (bannerEl) bannerEl.classList.add('hidden');
+          if (summaryEl) summaryEl.textContent = `Connected: +${data.phone || 'Active'}`;
+          if (nameEl) nameEl.textContent = data.name || ('+' + (data.phone || 'Connected'));
+          if (phoneEl) phoneEl.textContent = data.phone ? ('+' + data.phone) : (data.userJid || '');
+          if (connDot) {
+            connDot.textContent = 'Connected';
+            connDot.className = 'text-[11px] font-mono text-emerald-400 shrink-0';
+          }
+          if (data.avatarUrl && avatarImg && avatarFallback) {
+            avatarImg.src = data.avatarUrl;
+            avatarImg.classList.remove('hidden');
+            avatarFallback.classList.add('hidden');
+          } else if (avatarImg && avatarFallback) {
+            avatarImg.classList.add('hidden');
+            avatarFallback.classList.remove('hidden');
+          }
+        } else {
+          if (bannerEl) bannerEl.classList.remove('hidden');
+          if (summaryEl) summaryEl.textContent = 'Disconnected — pair WhatsApp session first';
+          if (nameEl) nameEl.textContent = 'No Connected Session';
+          if (phoneEl) phoneEl.textContent = 'Open Device Pairing to link WhatsApp';
+          if (connDot) {
+            connDot.textContent = 'Offline';
+            connDot.className = 'text-[11px] font-mono text-amber-400 shrink-0';
+          }
+        }
+      } catch (err) {
+        if (summaryEl) summaryEl.textContent = 'Could not check session status';
+      }
+    }
+
+    async function fetchFullPpGroups() {
+      const selectEl = document.getElementById('fullPpGroupSelect');
+      const noteEl = document.getElementById('fullPpGroupStatusNote');
+      if (noteEl) noteEl.textContent = 'Loading active WhatsApp groups…';
+
+      try {
+        const res = await fetch('/api/profile-pic/groups');
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          fullPpLoadedGroups = [];
+          renderFullPpGroupOptions([]);
+          if (noteEl) noteEl.textContent = data.error || 'Could not load groups.';
+          return;
+        }
+        fullPpLoadedGroups = Array.isArray(data.groups) ? data.groups : [];
+        renderFullPpGroupOptions(fullPpLoadedGroups);
+        if (noteEl) {
+          noteEl.textContent = fullPpLoadedGroups.length > 0
+            ? `Loaded ${fullPpLoadedGroups.length} active group(s). Select a group or enter its JID below.`
+            : 'No active WhatsApp groups found on this session.';
+        }
+      } catch (err) {
+        if (noteEl) noteEl.textContent = 'Failed to fetch groups: ' + err.message;
+        if (selectEl) selectEl.innerHTML = '<option value="">-- Failed to load groups --</option>';
+      }
+    }
+
+    function renderFullPpGroupOptions(groups) {
+      const selectEl = document.getElementById('fullPpGroupSelect');
+      if (!selectEl) return;
+      const prevVal = selectEl.value;
+      const optionsHtml = ['<option value="">-- Select a WhatsApp Group --</option>'];
+      for (const g of groups) {
+        const tag = g.isBotAdmin ? ' [Admin]' : (g.restrict ? ' [Admin Required]' : '');
+        const label = `${g.subject || g.jid} (${g.participantsCount || 0})${tag}`;
+        optionsHtml.push(`<option value="${escapeHtmlSafe(g.jid)}">${escapeHtmlSafe(label)}</option>`);
+      }
+      selectEl.innerHTML = optionsHtml.join('');
+      if (prevVal && groups.some(g => g.jid === prevVal)) {
+        selectEl.value = prevVal;
+      }
+    }
+
+    function filterFullPpGroups() {
+      const q = (document.getElementById('fullPpGroupSearch')?.value || '').trim().toLowerCase();
+      if (!q) {
+        renderFullPpGroupOptions(fullPpLoadedGroups);
+        return;
+      }
+      const filtered = fullPpLoadedGroups.filter(g =>
+        String(g.subject || '').toLowerCase().includes(q) ||
+        String(g.jid || '').toLowerCase().includes(q)
+      );
+      renderFullPpGroupOptions(filtered);
+    }
+
+    function onFullPpGroupDropdownChange() {
+      const selectEl = document.getElementById('fullPpGroupSelect');
+      const inputEl = document.getElementById('fullPpGroupJidInput');
+      if (selectEl && inputEl && selectEl.value) {
+        inputEl.value = selectEl.value;
+      }
+    }
+
+    function handleFullPpDragOver(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const dz = document.getElementById('fullPpDropzone');
+      if (dz) dz.classList.add('border-amber-400', 'bg-amber-500/5');
+    }
+
+    function handleFullPpDragLeave(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const dz = document.getElementById('fullPpDropzone');
+      if (dz) dz.classList.remove('border-amber-400', 'bg-amber-500/5');
+    }
+
+    function handleFullPpDrop(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const dz = document.getElementById('fullPpDropzone');
+      if (dz) dz.classList.remove('border-amber-400', 'bg-amber-500/5');
+      const files = event.dataTransfer?.files;
+      if (files && files.length > 0) {
+        handleFullPpFileSelected(files[0]);
+      }
+    }
+
+    function handleFullPpFileInputChange(event) {
+      const file = event.target?.files?.[0];
+      if (file) handleFullPpFileSelected(file);
+    }
+
+    function handleFullPpFileSelected(file) {
+      setFullPpAlert('');
+      if (!file.type || !file.type.startsWith('image/')) {
+        setFullPpAlert('Please select a valid image file (JPG, PNG, or WebP).', 'error');
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setFullPpAlert('Image exceeds the 15 MB maximum file size.', 'error');
+        return;
+      }
+
+      fullPpSelectedFile = file;
+      if (fullPpPreviewObjectUrl) {
+        try { URL.revokeObjectURL(fullPpPreviewObjectUrl); } catch (_) {}
+      }
+      fullPpPreviewObjectUrl = URL.createObjectURL(file);
+
+      const frameImg = document.getElementById('fullPpFramePreviewImg');
+      const frameEmpty = document.getElementById('fullPpFramePreviewEmpty');
+      const circleImg = document.getElementById('fullPpCirclePreviewImg');
+      const circleEmpty = document.getElementById('fullPpCirclePreviewEmpty');
+      const metaBox = document.getElementById('fullPpFileMeta');
+      const nameEl = document.getElementById('fullPpFileName');
+      const dimsEl = document.getElementById('fullPpFileDims');
+      const ratioEl = document.getElementById('fullPpPreviewRatio');
+
+      if (frameImg) {
+        frameImg.src = fullPpPreviewObjectUrl;
+        frameImg.classList.remove('hidden');
+      }
+      if (frameEmpty) frameEmpty.classList.add('hidden');
+      if (circleImg) {
+        circleImg.src = fullPpPreviewObjectUrl;
+        circleImg.classList.remove('hidden');
+      }
+      if (circleEmpty) circleEmpty.classList.add('hidden');
+      if (metaBox) metaBox.classList.remove('hidden');
+      if (nameEl) nameEl.textContent = file.name || 'selected-image.jpg';
+
+      const sizeText = file.size >= 1024 * 1024
+        ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+        : Math.max(1, Math.round(file.size / 1024)) + ' KB';
+
+      const probe = new Image();
+      probe.onload = () => {
+        const w = probe.naturalWidth || 720;
+        const h = probe.naturalHeight || 720;
+        const scale = Math.min(720 / w, 720 / h);
+        const outW = Math.max(1, Math.round(w * scale));
+        const outH = Math.max(1, Math.round(h * scale));
+        if (dimsEl) {
+          dimsEl.textContent = `Original: ${w}×${h}px · Output: ${outW}×${outH}px · Size: ${sizeText}`;
+        }
+        if (ratioEl) {
+          ratioEl.textContent = `${outW}×${outH}px (No Crop)`;
+        }
+      };
+      probe.src = fullPpPreviewObjectUrl;
+    }
+
+    function clearFullPpFile() {
+      fullPpSelectedFile = null;
+      if (fullPpPreviewObjectUrl) {
+        try { URL.revokeObjectURL(fullPpPreviewObjectUrl); } catch (_) {}
+        fullPpPreviewObjectUrl = null;
+      }
+      const input = document.getElementById('fullPpFileInput');
+      if (input) input.value = '';
+
+      const frameImg = document.getElementById('fullPpFramePreviewImg');
+      const frameEmpty = document.getElementById('fullPpFramePreviewEmpty');
+      const circleImg = document.getElementById('fullPpCirclePreviewImg');
+      const circleEmpty = document.getElementById('fullPpCirclePreviewEmpty');
+      const metaBox = document.getElementById('fullPpFileMeta');
+      const ratioEl = document.getElementById('fullPpPreviewRatio');
+
+      if (frameImg) { frameImg.src = ''; frameImg.classList.add('hidden'); }
+      if (frameEmpty) frameEmpty.classList.remove('hidden');
+      if (circleImg) { circleImg.src = ''; circleImg.classList.add('hidden'); }
+      if (circleEmpty) circleEmpty.classList.remove('hidden');
+      if (metaBox) metaBox.classList.add('hidden');
+      if (ratioEl) ratioEl.textContent = 'No photo';
+      setFullPpAlert('');
+    }
+
+    async function submitFullProfilePicture() {
+      if (!fullPpSelectedFile) {
+        setFullPpAlert('Please select or drop a photo first.', 'error');
+        return;
+      }
+
+      const groupJid = (document.getElementById('fullPpGroupJidInput')?.value || document.getElementById('fullPpGroupSelect')?.value || '').trim();
+      if (fullPpTargetMode === 'group' && !groupJid) {
+        setFullPpAlert('Please select a WhatsApp group or enter a valid Group JID (@g.us).', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('fullPpApplyBtn');
+      const btnText = document.getElementById('fullPpApplyBtnText');
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = 'Processing & Uploading No-Crop Photo…';
+      setFullPpAlert('');
+
+      try {
+        const formData = new FormData();
+        formData.append('image', fullPpSelectedFile);
+        formData.append('targetType', fullPpTargetMode);
+        if (fullPpTargetMode === 'group') {
+          formData.append('groupJid', groupJid);
+        }
+
+        const res = await fetch('/api/profile-pic/full', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to apply Full Profile Picture.');
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setFullPpAlert(`✅ ${data.message} Updated at ${timeStr}.`, 'success');
+        if (fullPpTargetMode === 'personal') {
+          setTimeout(() => fetchFullPpCurrentProfile(), 1200);
+        }
+      } catch (err) {
+        setFullPpAlert(`❌ ${err.message || 'Upload failed.'}`, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+        updateFullPpApplyLabel();
       }
     }
   </script>

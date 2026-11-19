@@ -1,11 +1,12 @@
 const { bot } = require('../lib/pluginLoader');
+const { hasOwnerPrivileges } = require('./sudo');
 
 bot({
   command: ['autoreactstatus', 'autostatusreply'],
   description: 'Toggle auto-react/reply to statuses',
   category: 'owner',
 }, async (sock, chatId, message, args, query, ctx) => {
-  if (!message.key.fromMe) { await sock.sendMessage(chatId, { text: '❌ Owner only!' }); return; }
+  if (!hasOwnerPrivileges(ctx.senderId, message, sock.user?.id, ctx.sessionNumber)) { await sock.sendMessage(chatId, { text: '❌ Owner only!' }); return; }
   const { isButtonModeOn, sendButtonMessage } = require('../lib/buttonHelper');
   const { loadConfig, saveConfig }            = require('../lib/config');
   const { getLang }                           = require('../lib/lang');
